@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Das Weihnachtsrätsel</title>
+  <style>
+    :root{--accent:#8bc34a;--card:#ffffffcc;--bg-dark:rgba(0,0,0,0.35)}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    /* full background image (clickable) */
+    .bg{position:fixed;inset:0;background-image:url('https://source.unsplash.com/1600x900/?christmas,lights');background-size:cover;background-position:center;z-index:-2}
+    .bg a{position:absolute;inset:0;text-decoration:none;color:transparent}
+    /* dim layer */
+    .overlay{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.25),rgba(0,0,0,0.45));z-index:-1}
+
+    main{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 20px}
+
+    /* island panel */
+    .island{width:min(980px,96%);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);background:linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.08));border-radius:18px;padding:28px 22px;box-shadow:0 10px 30px rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.06);text-align:center;color:#fff}
+    h1{margin:6px 0 14px;font-size:clamp(22px,5vw,40px);letter-spacing:1px}
+    p.lead{opacity:0.95;margin:0 0 18px}
+
+    .tasks{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:18px}
+    .task{background:var(--card);padding:14px;border-radius:12px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;color:#111}
+    .task h3{margin:0;font-size:16px}
+    .task .desc{font-size:13px;color:#333}
+    .task .codepart{margin-left:auto;background:#222;color:#fff;padding:6px 8px;border-radius:8px;font-weight:700}
+    .task button{margin-top:8px;padding:8px 10px;border-radius:8px;border:0;background:var(--accent);color:#063;font-weight:600}
+
+    /* code input area */
+    .verify{width:min(980px,96%);margin-top:20px;background:rgba(255,255,255,0.06);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.05);display:flex;gap:10px;align-items:center}
+    .verify input{flex:1;padding:10px;border-radius:10px;border:0;background:rgba(255,255,255,0.9)}
+    .verify button{padding:10px 14px;border-radius:10px;border:0;background:#4caf50;color:#fff}
+
+    footer{margin-top:18px;color:#ddd;font-size:13px}
+
+    /* challenge sections (like subpages) */
+    .page{position:fixed;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.6),rgba(0,0,0,0.78));display:none;align-items:center;justify-content:center;padding:20px}
+    .page.visible{display:flex}
+    .panel{width:min(980px,98%);background:#fff;padding:18px;border-radius:12px;max-height:92vh;overflow:auto}
+
+    /* small screens */
+    @media (max-width:700px){.tasks{grid-template-columns:1fr}.task{align-items:stretch}.task .codepart{margin-left:0;align-self:center}}
+
+    /* helper */
+    .row{display:flex;gap:10px;align-items:center}
+
+    /* game canvas styling */
+    canvas#flappy{width:100%;height:360px;background:linear-gradient(#b3e5fc,#0288d1);display:block;border-radius:8px}
+    @media (max-width:700px){canvas#flappy{height:220px}}
+  </style>
+</head>
+<body>
+  <div class="bg"><a href="https://unsplash.com/s/photos/christmas" target="_blank" rel="noopener">Unsplash: christmas images</a></div>
+  <div class="overlay"></div>
+
+  <main>
+    <section class="island" aria-labelledby="title">
+      <h1 id="title">Das Weihnachtsrätsel</h1>
+      <p class="lead">Vier kleine Challenges. Löse jede, um ein Code-Stück freizuschalten. Setze die vier Teile korrekt zusammen und gib den Gutschein-Code unten ein.</p>
+
+      <div class="tasks" id="taskList">
+        <div class="task" data-id="1">
+          <div style="display:flex;width:100%;align-items:center">
+            <h3>1) Flappy Santas</h3>
+            <div class="codepart" id="part1">—</div>
+          </div>
+          <div class="desc">Erziele mindestens <strong id="reqScore">5</strong> Punkte im Flappy-Spiel.</div>
+          <button onclick="openPage('challenge1')">Start</button>
+        </div>
+
+        <div class="task" data-id="2">
+          <div style="display:flex;width:100%;align-items:center">
+            <h3>2) Weihnachtswissen</h3>
+            <div class="codepart" id="part2">—</div>
+          </div>
+          <div class="desc">Beantworte mindestens 3 von 4 Fragen richtig.</div>
+          <button onclick="openPage('challenge2')">Start</button>
+        </div>
+
+        <div class="task" data-id="3">
+          <div style="display:flex;width:100%;align-items:center">
+            <h3>3) Reaktionszeit</h3>
+            <div class="codepart" id="part3">—</div>
+          </div>
+          <div class="desc">Tippe innerhalb von 400 ms, wenn der Punkt erscheint.</div>
+          <button onclick="openPage('challenge3')">Start</button>
+        </div>
+
+        <div class="task" data-id="4">
+          <div style="display:flex;width:100%;align-items:center">
+            <h3>4) Geschenk-Find</h3>
+            <div class="codepart" id="part4">—</div>
+          </div>
+          <div class="desc">Finde 3 richtige Geschenke unter Zeitdruck.</div>
+          <button onclick="openPage('challenge4')">Start</button>
+        </div>
+      </div>
+
+    </section>
+
+    <div class="verify" role="region" aria-label="Code prüfen">
+      <input id="codeInput" placeholder="Gib hier den zusammengesetzten Gutschein-Code ein">
+      <button onclick="verifyCode()">Prüfen</button>
+      <div id="verifyMsg" style="color:#fff;font-weight:700"></div>
+    </div>
+
+    <footer>Hintergrundbild: Unsplash (Suchergebnisse). Bild-Link oben.</footer>
+  </main>
+
+  <!-- Challenge Pages -->
+  <div id="challenge1" class="page">
+    <div class="panel">
+      <div class="row"><h2>Flappy Santas</h2><button style="margin-left:auto" onclick="closePage('challenge1')">Zurück</button></div>
+      <p>Tippe / klicke oder drücke Leertaste, um zu fliegen. Erreiche die geforderte Punktzahl.</p>
+      <canvas id="flappy"></canvas>
+      <div class="row" style="margin-top:8px"><div>Score: <span id="flappyScore">0</span></div><div style="margin-left:auto">Best: <span id="flappyBest">0</span></div></div>
+      <div style="margin-top:8px"><button onclick="resetFlappy()">Neu starten</button> <span style="margin-left:8px;color:#555">(Mobile: tippe den Bildschirm.)</span></div>
+    </div>
+  </div>
+
+  <div id="challenge2" class="page">
+    <div class="panel">
+      <div class="row"><h2>Weihnachtsquiz</h2><button style="margin-left:auto" onclick="closePage('challenge2')">Zurück</button></div>
+      <div id="quizArea"></div>
+    </div>
+  </div>
+
+  <div id="challenge3" class="page">
+    <div class="panel">
+      <div class="row"><h2>Reaktionstest</h2><button style="margin-left:auto" onclick="closePage('challenge3')">Zurück</button></div>
+      <p>Warte bis der Punkt erscheint und tippe ihn so schnell wie möglich an.</p>
+      <div id="reactArea" style="height:240px;display:flex;align-items:center;justify-content:center;position:relative">
+        <div id="dot" style="width:40px;height:40px;border-radius:50%;background:#e53935;display:none;position:absolute"></div>
+      </div>
+      <div style="margin-top:10px">Letzte Zeit: <span id="lastReact">—</span> ms</div>
+      <div style="margin-top:8px"><button onclick="startReact()">Start</button></div>
+    </div>
+  </div>
+
+  <div id="challenge4" class="page">
+    <div class="panel">
+      <div class="row"><h2>Geschenk-Find</h2><button style="margin-left:auto" onclick="closePage('challenge4')">Zurück</button></div>
+      <p>Klicke die richtigen Geschenke (grün markiert) — du musst 3 Treffer schaffen bevor die Zeit abläuft.</p>
+      <div id="gifts" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px"></div>
+      <div style="margin-top:8px">Zeit: <span id="giftTimer">15</span>s</div>
+      <div style="margin-top:8px"><button onclick="startGifts()">Start</button></div>
+    </div>
+  </div>
+
+  <script>
+    /* --- state & code parts --- */
+    const codeParts = ['KR1S','AMT-','XMAS','-2025']; // changeable
+    const revealed = [false,false,false,false];
+
+    function revealPart(i){
+      if(!revealed[i]){
+        revealed[i]=true;
+        document.getElementById('part'+(i+1)).textContent = codeParts[i];
+      }
+    }
+
+    function openPage(id){
+      document.getElementById(id).classList.add('visible');
+      if(id==='challenge1') initFlappy();
+    }
+    function closePage(id){
+      document.getElementById(id).classList.remove('visible');
+    }
+
+    /* --- verify code --- */
+    function verifyCode(){
+      const inp = document.getElementById('codeInput').value.trim();
+      const msg = document.getElementById('verifyMsg');
+      if(!inp){msg.textContent='Bitte Code eingeben.';return}
+      if(inp.replaceAll(' ','') === codeParts.join('')){msg.style.color='#8bc34a';msg.textContent='Korrekt! Gutschein aktiviert.'}
+      else{msg.style.color='#ffcc00';msg.textContent='Falsch. Prüfe die Teile.'}
+    }
+
+    /* ================== Flappy (simplified) ==================*/
+    let flappyCanvas, fctx, fW, fH, flappyReq=5;
+    let bird, pipes, gravity=0.45, flap=-7, flappyRunning=false, flappyScore=0, flappyBest=0;
+    function initFlappy(){
+      if(flappyCanvas) return; // only initialize once
+      flappyCanvas = document.getElementById('flappy');
+      fctx = flappyCanvas.getContext('2d');
+      function resize(){
+        fW = flappyCanvas.width = Math.min(900, Math.max(320, window.innerWidth*0.8));
+        fH = flappyCanvas.height = Math.min(480, Math.max(200, window.innerHeight*0.35));
+      }
+      resize(); window.addEventListener('resize', resize);
+
+      resetFlappy();
+      flappyCanvas.addEventListener('click', ()=>{flapBird(); if(!flappyRunning) startFlappy()});
+      document.addEventListener('keydown', e=>{if(e.code==='Space'){e.preventDefault(); flapBird(); if(!flappyRunning) startFlappy()}});
+      // mobile tap
+    }
+    function resetFlappy(){
+      bird={x:80,y:100,vy:0,r:12};
+      pipes=[];flappyScore=0;updateScore();flappyRunning=false;
+      drawFlappy();
+    }
+    function startFlappy(){
+      flappyRunning=true; lastTime=performance.now(); spawnTimer=0; loopFlappy();
+    }
+    function flapBird(){ bird.vy=flap }
+    let lastTime=0, spawnTimer=0;
+    function loopFlappy(now){
+      if(!flappyRunning) return; now = now||performance.now(); const dt=(now-lastTime)/16.67; lastTime=now;
+      // physics
+      bird.vy += gravity*dt; bird.y += bird.vy*dt;
+      spawnTimer += dt;
+      if(spawnTimer>90){spawnTimer=0; // add pipe
+        const gap = Math.max(80, fH*0.25);
+        const cy = 80 + Math.random()*(fH-200);
+        pipes.push({x:fW+40,cy,gap,passed:false});
+      }
+      // move pipes
+      for(let p of pipes){ p.x -= 2.6*dt; if(!p.passed && p.x + 30 < bird.x){p.passed=true; flappyScore++; updateScore(); checkFlappyWin()} }
+      pipes = pipes.filter(p=>p.x > -80);
+      // collisions
+      if(bird.y > fH- bird.r || bird.y < bird.r) { endFlappy(); drawFlappy(); return }
+      for(let p of pipes){ if(bird.x+bird.r > p.x && bird.x-bird.r < p.x+50){ if(bird.y - bird.r < p.cy - p.gap/2 || bird.y + bird.r > p.cy + p.gap/2){ endFlappy(); drawFlappy(); return } } }
+      drawFlappy(); requestAnimationFrame(loopFlappy);
+    }
+    function endFlappy(){ flappyRunning=false; flappyBest = Math.max(flappyBest, flappyScore); document.getElementById('flappyBest').textContent = flappyBest; if(flappyScore>=flappyReq) {revealPart(0); alert('Glückwunsch — Teil 1 freigeschaltet!')} }
+    function updateScore(){ document.getElementById('flappyScore').textContent = flappyScore }
+    function checkFlappyWin(){ if(flappyScore>=flappyReq){ revealPart(0); /* do not auto-end - allow player to continue */ } }
+    function drawFlappy(){ fctx.clearRect(0,0,fW,fH);
+      // bg
+      const grad = fctx.createLinearGradient(0,0,0,fH); grad.addColorStop(0,'#8ed0f6');grad.addColorStop(1,'#0b72a8'); fctx.fillStyle=grad; fctx.fillRect(0,0,fW,fH);
+      // pipes
+      for(let p of pipes){ fctx.fillStyle='#2e7d32'; fctx.fillRect(p.x,0,50,p.cy - p.gap/2); fctx.fillRect(p.x,p.cy + p.gap/2,50,fH);
+        fctx.fillStyle='#1b5e20'; fctx.fillRect(p.x+40, p.cy - p.gap/2 - 8, 12, 8); }
+      // bird (santa head)
+      fctx.beginPath(); fctx.fillStyle='#fff'; fctx.arc(bird.x,bird.y,bird.r,0,Math.PI*2); fctx.fill();
+      // hat
+      fctx.fillStyle='#c62828'; fctx.beginPath(); fctx.moveTo(bird.x-12,bird.y-6); fctx.lineTo(bird.x+12,bird.y-6); fctx.lineTo(bird.x,bird.y-18); fctx.closePath(); fctx.fill();
+      // eye
+      fctx.fillStyle='#000'; fctx.fillRect(bird.x-4,bird.y-2,3,3);
+    }
+
+    /* ================== Quiz ================== */
+    const quiz = [
+      {q:'Welches Datum ist Heiligabend?', a:['24. Dezember','25. Dezember','6. Januar'], correct:0},
+      {q:'Welche Pflanze gilt als Weihnachtssymbol?', a:['Efeu','Stechpalme (Ilex)','Rosmarin'], correct:1},
+      {q:'Woher stammt der Brauch des Weihnachtsbaums ursprünglich?', a:['Deutschland','Italien','USA'], correct:0},
+      {q:'Welches Gebäck gehört typisch zur Weihnachtszeit in Deutschland?', a:['Croissant','Lebkuchen','Baguette'], correct:1}
+    ];
+
+    function openQuiz(){
+      const area = document.getElementById('quizArea'); area.innerHTML='';
+      let index=0, correct=0;
+      function show(){ const item = quiz[index]; const wrap = document.createElement('div'); wrap.innerHTML=`<h3>Frage ${index+1}</h3><p>${item.q}</p>`;
+        item.a.forEach((opt,i)=>{ const btn = document.createElement('button'); btn.style.margin='6px'; btn.textContent=opt; btn.onclick=()=>{ if(i===item.correct){correct++} index++; if(index<quiz.length){ show(); } else { finish(); } } ; wrap.appendChild(btn)});
+        area.innerHTML=''; area.appendChild(wrap);
+      }
+      function finish(){ area.innerHTML=`<h3>Ergebnis</h3><p>Richtig: ${correct} / ${quiz.length}</p>`;
+        if(correct>=3){ revealPart(1); area.innerHTML += '<p style="color:green">Du hast Teil 2 freigeschaltet!</p>' } else { area.innerHTML += '<p style="color:orange">Nicht genug richtige Antworten.</p>' }
+        area.innerHTML += '<div style="margin-top:10px"><button onclick="openPage(\'challenge2\')">Noch mal</button></div>' }
+      show();
+    }
+
+    /* ================== Reaction ================== */
+    let reactTimeout;
+    function startReact(){ const dot = document.getElementById('dot'); dot.style.display='none'; document.getElementById('lastReact').textContent='—';
+      clearTimeout(reactTimeout); const wait = 800 + Math.random()*1600; reactTimeout = setTimeout(()=>{ showDot(); }, wait);
+    }
+    function showDot(){ const dot = document.getElementById('dot'); const area = document.getElementById('reactArea'); const rect = area.getBoundingClientRect(); const x = Math.random()*(rect.width-60)+30; const y = Math.random()*(rect.height-60)+30; dot.style.left = x+'px'; dot.style.top = y+'px'; dot.style.display='block'; const shown = performance.now(); function reactHandler(){ const dt = Math.round(performance.now()-shown); document.getElementById('lastReact').textContent=dt; dot.style.display='none'; dot.removeEventListener('click', reactHandler); if(dt<=400){ revealPart(2); alert('Teil 3 freigeschaltet!') } }
+      dot.addEventListener('click', reactHandler);
+      // also allow touch anywhere
+      setTimeout(()=>{ dot.removeEventListener('click', reactHandler); dot.style.display='none' }, 3000);
+    }
+
+    /* ================== Gifts mini-game ================== */
+    let giftInterval, giftTimeLeft, giftCorrect=0;
+    function startGifts(){ const container = document.getElementById('gifts'); container.innerHTML=''; giftTimeLeft=15; giftCorrect=0; document.getElementById('giftTimer').textContent = giftTimeLeft;
+      // spawn 9 items, 3 are targets
+      const targets = new Set(); while(targets.size<3) targets.add(Math.floor(Math.random()*9));
+      for(let i=0;i<9;i++){ const btn = document.createElement('button'); btn.style.width='30%'; btn.style.padding='18px'; btn.style.borderRadius='10px'; btn.style.border='1px solid #ccc'; btn.style.background='#fff'; btn.textContent = '🎁'; btn.dataset.target = targets.has(i)?'1':'0'; btn.onclick = ()=>{ if(btn.dataset.target==='1'){ btn.style.transform='scale(0.9)'; btn.disabled=true; giftCorrect++; if(giftCorrect>=3){ clearInterval(giftInterval); revealPart(3); alert('Teil 4 freigeschaltet!') } } else { btn.style.opacity='0.5' } } ; container.appendChild(btn) }
+      giftInterval = setInterval(()=>{ giftTimeLeft--; document.getElementById('giftTimer').textContent = giftTimeLeft; if(giftTimeLeft<=0){ clearInterval(giftInterval); alert('Zeit vorbei'); } },1000);
+    }
+
+    /* initialize quiz when opening page */
+    document.getElementById('challenge2').addEventListener('transitionend',()=>{});
+    document.getElementById('challenge2').querySelector('.panel');
+    // attach open handlers for quiz/gifts/react
+    document.querySelector('[onclick="openPage(\'challenge2\')"]').addEventListener('click', ()=>{ setTimeout(openQuiz,200); });
+    document.querySelector('[onclick="openPage(\'challenge3\')"]').addEventListener('click', ()=>{ /* reset */ document.getElementById('lastReact').textContent='—'; });
+    document.querySelector('[onclick="openPage(\'challenge4\')"]').addEventListener('click', ()=>{ document.getElementById('gifts').innerHTML=''; document.getElementById('giftTimer').textContent='15'; });
+
+    // small usability: clicking background closes page
+    document.querySelectorAll('.page').forEach(p=>{ p.addEventListener('click', e=>{ if(e.target===p) p.classList.remove('visible') })});
+
+    // make sure code parts shown if already revealed (on page reload they won't persist)
+    // (For a persistent system, use localStorage - omitted by design for simplicity)
+
+  </script>
+</body>
+</html>
